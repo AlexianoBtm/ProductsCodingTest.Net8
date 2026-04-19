@@ -1,0 +1,41 @@
+# Build output
+bin/
+obj/
+**/bin/
+**/obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Visual Studio / VS Code
+.vs/
+.vscode/
+
+# Node
+node_modules/
+**/node_modules/
+
+# Frontend build output
+dist/
+**/dist/
+
+# Test / coverage
+coverage/
+**/coverage/
+TestResults/
+**/TestResults/
+
+# Local database
+Products.Api/products.db
+Products.Api/*.db-shm
+Products.Api/*.db-wal
