@@ -1,21 +1,29 @@
-# Products Coding Test
+# Products API
 
-A small but professional **.NET 8 + React** coding test submission that implements a secured Products Web API, real persistence with SQLite, automated tests, and a simple frontend that consumes the API.
+A small full-stack product management sample built with .NET 8 and React.
 
-## Project Overview
+The solution includes a secure Products API, a simple React frontend, automated tests, and supporting documentation. It is designed to be straightforward to run locally while keeping a clean layered architecture and realistic implementation choices.
 
-This solution was built to satisfy the requested coding test requirements while presenting the project in a clean, realistic, and reviewer-friendly way.
+## Overview
 
-The implementation includes:
+This repository contains:
 
-- anonymous health endpoint
+- A .NET 8 Web API for product management
 - JWT-based authentication
-- protected product endpoints
-- SQLite persistence with Entity Framework Core
-- unit tests
-- integration tests
-- React + Vite frontend
-- architecture documentation
+- SQLite persistence with automatic startup migrations
+- Unit and integration tests
+- A React + Vite frontend that consumes the API
+- Architecture documentation for the overall solution shape
+
+## Features
+
+- Public health endpoint
+- Login endpoint that returns a JWT
+- Protected product endpoints
+- Create product
+- List products
+- Filter products by colour
+- Frontend integration for login, health check, listing, filtering, and product creation
 
 ## Tech Stack
 
@@ -33,6 +41,7 @@ The implementation includes:
 
 ### Testing
 - xUnit
+- ASP.NET Core integration testing
 
 ## Solution Structure
 
@@ -52,31 +61,19 @@ ProductsCodingTest.Net8/
 
 ## Architecture Summary
 
-The solution follows a layered structure to keep responsibilities separated clearly:
+The backend follows a layered structure:
 
-- **Products.Domain**: core `Product` entity
-- **Products.Application**: DTOs, interfaces, services, and shared configuration such as `JwtOptions`
-- **Products.Infrastructure**: EF Core, SQLite, repository implementation, migrations
-- **Products.Api**: controllers, authentication setup, authorization, Swagger, CORS, startup
-- **Products.UnitTests**: isolated service-level tests
-- **Products.IntegrationTests**: end-to-end API tests
-- **frontend/products-web**: React frontend that consumes the API
+- **Products.Domain**: core domain model
+- **Products.Application**: DTOs, interfaces, services, and application logic
+- **Products.Infrastructure**: EF Core persistence and repository implementations
+- **Products.Api**: HTTP endpoints, authentication, Swagger, and app startup
+- **Products.UnitTests**: unit tests for application logic
+- **Products.IntegrationTests**: end-to-end API behavior tests
+- **frontend/products-web**: React client application
 
-A more detailed architecture explanation is included here:
+## API Endpoints
 
-- `docs/architecture-overview.md`
-
-## Authentication
-
-The protected product endpoints use **JWT Bearer Authentication**.
-
-### Demo credentials
-- Username: `admin`
-- Password: `Password123!`
-
-## Available Endpoints
-
-### Anonymous
+### Public
 - `GET /health`
 - `POST /api/auth/login`
 
@@ -85,38 +82,34 @@ The protected product endpoints use **JWT Bearer Authentication**.
 - `GET /api/products?colour=Black`
 - `POST /api/products`
 
-## Functional Rules
+## Demo Credentials
 
-### Product creation
-- `Name` is required
-- `Colour` is required
-- `Price` must be greater than `0`
+Use the following credentials to obtain a JWT:
 
-### Product filtering
-- colour filtering is case-insensitive
-- no matches return an empty array
+```text
+Username: admin
+Password: Password123!
+```
 
-## How to Run the Backend
+## Running the Backend
 
 From the repository root:
 
 ```bash
 dotnet restore
 dotnet build
-dotnet run --project Products.Api/Products.Api.csproj
+dotnet run --project Products.Api
 ```
 
-Once running, the API should be available through the local ASP.NET Core launch profile output.
+Notes:
 
-Swagger should be available at:
+- The API uses SQLite locally.
+- Database migrations are applied automatically on startup.
+- Swagger is available once the API is running.
 
-```text
-/swagger
-```
+## Running the Frontend
 
-## How to Run the Frontend
-
-From the frontend folder:
+Open a second terminal:
 
 ```bash
 cd frontend/products-web
@@ -124,90 +117,68 @@ npm install
 npm run dev
 ```
 
-The frontend runs locally through Vite and calls the backend API.
+Default local frontend URL:
 
-Make sure the backend is running before starting the frontend.
-
-If PowerShell blocks `npm` scripts on Windows, run `npm.cmd install` and `npm.cmd run dev`, or use Command Prompt instead.
-
-## How to Run Tests
-
-### Unit tests
-```bash
-dotnet test Products.UnitTests
+```text
+http://localhost:5173
 ```
 
-### Integration tests
-```bash
-dotnet test Products.IntegrationTests
-```
+## Running Tests
 
-### All tests
+Run all tests:
+
 ```bash
 dotnet test
 ```
 
-## Frontend Features
+Or run them by project:
 
-The frontend is intentionally simple and focused on demonstrating integration rather than heavy design.
+```bash
+dotnet test Products.UnitTests
+dotnet test Products.IntegrationTests
+```
 
-Current functionality:
-- login
-- health status check
-- products list
-- colour filter
-- create product form
+## Authentication in Swagger
 
-## Persistence
+1. Run the API
+2. Open Swagger
+3. Call `POST /api/auth/login`
+4. Copy the returned token
+5. Click **Authorize**
+6. Enter:
 
-The project uses **SQLite** with **Entity Framework Core**.
+```text
+Bearer <your-token>
+```
 
-Migrations are included in the repository, and the project uses a local SQLite database for simple setup and real persistence.
+## Example Product Request
 
-## Testing Summary
+```json
+{
+  "name": "Gaming Mouse",
+  "description": "Wireless mouse",
+  "colour": "Black",
+  "price": 49.99
+}
+```
 
-The solution includes both unit and integration testing.
+## Local Notes
 
-### Unit tests cover
-- valid product creation
-- invalid product creation
-- get all products
-- colour filtering
-- case-insensitive filtering
+If PowerShell blocks `npm`, use:
 
-### Integration tests cover
-- health endpoint
-- login endpoint
-- unauthorized access to protected endpoints
-- authorized product retrieval
-- authorized product creation
-- colour filtering through the real API
-
-## Reviewer Notes
-
-This project was intentionally designed to be:
-
-- small in scope
-- clear in structure
-- realistic in implementation
-- easy to run locally
-- professional without unnecessary overengineering
-
-The goal was to deliver a coding test submission that feels solid, modern, and easy to review.
-
-## Future Improvements
-
-Possible next improvements, if this were expanded beyond the coding test, could include:
-
-- Docker support
-- consistent global exception handling
-- cleaner validation response formatting
-- seed data improvements
-- CI workflow for automated test execution
-- richer frontend UX
+```bash
+npm.cmd install
+npm.cmd run dev
+```
 
 ## Documentation
 
-Additional project documentation:
+Additional project documentation is available in the `docs` folder.
 
-- `docs/architecture-overview.md`
+## Possible Future Improvements
+
+- Docker support for API and frontend
+- Seed data for local development
+- Centralized exception handling
+- Improved validation response formatting
+- UI polish and better state handling
