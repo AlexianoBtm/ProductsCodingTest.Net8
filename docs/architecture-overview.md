@@ -1,37 +1,25 @@
-# Products Coding Test — Architecture Overview
+# Products API — Architecture Overview
 
 ## Purpose
 
-This repository contains a coding test submission for a **Products Web API** built with **.NET 8** and a simple **React + Vite** frontend.
+This repository contains a small full-stack product management sample built with **.NET 8** and a simple **React + Vite** frontend.
 
-The goal of the solution is not only to satisfy the requested features, but also to present a small, clean, and professional implementation that feels realistic for a production-minded environment.
-
-The project follows a **small but enterprise-minded** approach:
-
-- small in scope
-- clear in structure
-- realistic in technical choices
-- easy to review and run
-- intentionally free of unnecessary overengineering
+The goal of the solution is to provide a clean, practical implementation that is easy to run locally and organized with clear architectural boundaries. The project keeps the scope intentionally small while using realistic technical choices such as JWT authentication, persistent storage, automated tests, and a frontend that integrates with the API.
 
 ---
 
-## Requested Requirements
+## Scope
 
-The original coding test requested a .NET 6+ Products Web API with:
+The solution includes:
 
-- an anonymous health check endpoint
-- secured endpoints to:
-  - create a product
-  - list all products as JSON
-  - get products by colour
+- a public health endpoint
+- authentication through JWT
+- protected endpoints to create and retrieve products
+- product filtering by colour
 - unit tests
 - integration tests
-- a simple architecture diagram showing how the service could fit into an event-driven or distributed architecture
-- a React or Angular frontend that consumes the API
-- a public GitHub repository
-
-This solution fulfills those requirements using **.NET 8**, which remains within the requested `.NET 6+` range while reflecting a more current stack choice.
+- a React frontend that consumes the API
+- architecture documentation that shows how the service is organized and how it could fit into a broader distributed system
 
 ---
 
@@ -74,13 +62,14 @@ ProductsCodingTest.Net8/
 └── README.md
 ```
 
-This structure follows the layered architecture and keeps responsibilities separated clearly.
+This structure follows a layered architecture and keeps responsibilities separated clearly.
 
 ---
 
 ## Layer Responsibilities
 
 ### Products.Domain
+
 Contains the core domain model.
 
 **Current responsibility**
@@ -92,6 +81,7 @@ Contains the core domain model.
 ---
 
 ### Products.Application
+
 Contains application logic, contracts, DTOs, and configuration abstractions used by the business layer.
 
 **Current responsibilities**
@@ -103,11 +93,13 @@ Contains application logic, contracts, DTOs, and configuration abstractions used
 - JWT options configuration class
 
 **Important architectural note**
+
 `JwtOptions` is intentionally placed in **Products.Application.Configuration**, not in the API project. This keeps configuration models used by the token service in the application layer and preserves cleaner dependency direction.
 
 ---
 
 ### Products.Infrastructure
+
 Contains persistence and external implementation details.
 
 **Current responsibilities**
@@ -124,6 +116,7 @@ Contains persistence and external implementation details.
 ---
 
 ### Products.Api
+
 Contains the HTTP layer and application startup configuration.
 
 **Current responsibilities**
@@ -141,6 +134,7 @@ Contains the HTTP layer and application startup configuration.
 ---
 
 ### Products.UnitTests
+
 Contains isolated tests for application logic.
 
 **Current responsibilities**
@@ -150,6 +144,7 @@ Contains isolated tests for application logic.
 ---
 
 ### Products.IntegrationTests
+
 Contains end-to-end tests for API behavior.
 
 **Current responsibilities**
@@ -161,6 +156,7 @@ Contains end-to-end tests for API behavior.
 ---
 
 ### frontend/products-web
+
 Contains the React frontend that consumes the API.
 
 **Current responsibilities**
@@ -184,18 +180,20 @@ The main entity in the system is `Product`.
 - `Price`
 - `CreatedAtUtc`
 
-This model is intentionally simple. It is realistic enough to feel professional, but small enough to keep the solution focused on the actual coding test requirements.
+This model is intentionally simple. It is realistic enough to support the application cleanly without introducing unnecessary complexity.
 
 ---
 
 ## API Design
 
-### Anonymous endpoints
+### Public endpoints
 
 #### `GET /health`
+
 Used to verify that the service is running.
 
 **Expected response**
+
 ```json
 {
   "status": "OK"
@@ -203,7 +201,8 @@ Used to verify that the service is running.
 ```
 
 #### `POST /api/auth/login`
-Used to obtain a JWT for testing protected endpoints.
+
+Used to obtain a JWT for protected endpoints.
 
 **Demo credentials**
 - Username: `admin`
@@ -218,9 +217,11 @@ Used to obtain a JWT for testing protected endpoints.
 ### Protected endpoints
 
 #### `GET /api/products`
+
 Returns all products as JSON.
 
 #### `GET /api/products?colour=Black`
+
 Returns products filtered by colour.
 
 **Behavior**
@@ -228,14 +229,13 @@ Returns products filtered by colour.
 - returns an empty array when there are no matches
 
 #### `POST /api/products`
+
 Creates a new product.
 
 **Validation rules**
 - `Name` is required
 - `Colour` is required
 - `Price` must be greater than `0`
-
-These API behaviors align with the final architecture direction of the project.
 
 ---
 
@@ -251,7 +251,8 @@ The project uses **JWT Bearer Authentication** for protected endpoints.
 5. Protected endpoints require that token
 
 ### Why JWT was chosen
-JWT provides a more realistic secured API flow than a simple API key approach and better reflects how protected endpoints are commonly handled in professional systems.
+
+JWT provides a realistic secured API flow and reflects a common approach for protecting HTTP endpoints in modern applications.
 
 ---
 
@@ -267,7 +268,8 @@ The project uses **SQLite** through **Entity Framework Core**.
 5. Data is stored in SQLite
 
 ### Why SQLite was chosen
-SQLite provides real persistence without creating unnecessary setup friction for the reviewer. It makes the project more realistic than an in-memory list while keeping local execution simple.
+
+SQLite provides real persistence without adding unnecessary setup complexity for local execution. It keeps the project practical while remaining easy to run.
 
 ---
 
@@ -285,15 +287,16 @@ The React frontend is intentionally simple and focused on proving integration ra
 ### Integration details
 - the frontend calls the backend API directly
 - JWT is stored temporarily for authenticated calls
-- CORS was configured in the API so the frontend can call the backend from local development
+- CORS is configured in the API so the frontend can call the backend during local development
 
-This matches the intended direction of keeping the frontend simple, functional, and professional rather than overdesigned.
+This keeps the frontend functional, clear, and aligned with the scope of the project.
 
 ---
 
 ## Testing Strategy
 
 ### Unit Tests
+
 The unit tests focus on application logic in `ProductService`.
 
 **Covered behavior**
@@ -308,6 +311,7 @@ The unit tests focus on application logic in `ProductService`.
 ---
 
 ### Integration Tests
+
 The integration tests verify real API behavior end to end.
 
 **Covered behavior**
@@ -346,9 +350,7 @@ The integration tests verify real API behavior end to end.
 
 ## Event-Driven Architecture Positioning
 
-This coding test does **not** implement real event publishing or a real message broker.
-
-However, the service is intentionally documented as if it could later fit into a broader distributed or event-driven architecture.
+This project does **not** implement real event publishing or a real message broker. However, the service is documented in a way that shows how it could later fit into a broader distributed or event-driven architecture.
 
 A simple conceptual future flow would be:
 
@@ -372,17 +374,17 @@ Products API
 - after product creation, the service could later publish a `ProductCreated` event
 - other services could consume that event depending on business needs
 
-This event-driven architecture is documented only for the coding test. It is not implemented physically in the current project.
+This architecture note is conceptual documentation only and is not implemented physically in the current project.
 
 ---
 
 ## Key Design Decisions
 
 ### Why .NET 8
-The requirement allows `.NET 6+`, and `.NET 8` presents a modern and current stack choice while remaining fully compliant.
+The project uses `.NET 8` as a modern and current stack choice.
 
 ### Why layered architecture
-It keeps the project easy to review and makes responsibilities obvious:
+It keeps responsibilities clear:
 - domain model stays clean
 - application logic stays testable
 - infrastructure stays replaceable
@@ -392,30 +394,24 @@ It keeps the project easy to review and makes responsibilities obvious:
 It gives the protected endpoints a realistic authentication flow.
 
 ### Why SQLite
-It provides real persistence with minimal reviewer setup friction.
+It provides real persistence with minimal local setup overhead.
 
 ### Why React + Vite
 It gives a modern frontend with fast local startup and enough capability to demonstrate full-stack integration.
 
 ---
 
-## Current Completion State
+## Current State
 
-At this stage, the core solution includes:
+At this stage, the solution includes:
 
 - completed backend architecture
 - working persistence
-- anonymous health and login endpoints
+- public health and login endpoints
 - protected product endpoints
 - working React frontend
-- passing unit tests
-- passing integration tests
-
-The remaining work for final submission is focused on:
-- repository cleanup
-- final README polish
-- final docs/packaging review
-- final reviewer-style validation
+- unit tests
+- integration tests
 
 ---
 
@@ -426,7 +422,7 @@ This solution is intentionally designed to be:
 - small in scope
 - clear in structure
 - realistic in implementation
-- easy for a reviewer to run
+- easy to run locally
 - professional without unnecessary complexity
 
-The project is meant to demonstrate sound engineering judgment, not just feature completion.
+The emphasis is on sound engineering judgment, clear separation of concerns, and a practical end-to-end flow.
