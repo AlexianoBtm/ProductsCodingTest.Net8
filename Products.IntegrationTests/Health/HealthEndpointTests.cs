@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 
 namespace Products.IntegrationTests.Health;
 
@@ -17,5 +18,13 @@ public class HealthEndpointTests : IClassFixture<CustomWebApplicationFactory>
         var response = await _client.GetAsync("/health");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var content = await response.Content.ReadFromJsonAsync<HealthResponse>();
+
+        Assert.NotNull(content);
+        Assert.Equal("Healthy", content.Status);
+        Assert.Equal("Available", content.Database);
     }
+
+    private sealed record HealthResponse(string Status, string Database);
 }

@@ -6,14 +6,20 @@ using Products.Application.DTOs.Products;
 
 namespace Products.IntegrationTests.Products;
 
-public class ProductsEndpointTests : IClassFixture<CustomWebApplicationFactory>
+public class ProductsEndpointTests : IClassFixture<CustomWebApplicationFactory>, IAsyncLifetime
 {
+    private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
     public ProductsEndpointTests(CustomWebApplicationFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
     }
+
+    public Task InitializeAsync() => _factory.ResetDatabaseAsync();
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
     public async Task GetProducts_WithoutToken_ReturnsUnauthorized()
@@ -38,97 +44,131 @@ public class ProductsEndpointTests : IClassFixture<CustomWebApplicationFactory>
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
     [Fact]
-public async Task GetProducts_WithValidToken_ReturnsOk()
-{
-    var token = await GetAccessTokenAsync();
-
-    _client.DefaultRequestHeaders.Authorization =
-        new AuthenticationHeaderValue("Bearer", token);
-
-    var response = await _client.GetAsync("/api/products");
-
-    Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-}
-
-[Fact]
-public async Task PostProducts_WithValidToken_ReturnsCreated()
-{
-    var token = await GetAccessTokenAsync();
-
-    _client.DefaultRequestHeaders.Authorization =
-        new AuthenticationHeaderValue("Bearer", token);
-
-    var request = new CreateProductRequest
+    public async Task GetProducts_WithValidToken_ReturnsOk()
     {
-        Name = "Laptop Stand",
-        Description = "Adjustable aluminum stand",
-        Colour = "Silver",
-        Price = 34.99m
-    };
+        await AuthenticateAsync();
 
-    var response = await _client.PostAsJsonAsync("/api/products", request);
+        var response = await _client.GetAsync("/api/products");
 
-    Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
 
-    var createdProduct = await response.Content.ReadFromJsonAsync<ProductResponse>();
-
-    Assert.NotNull(createdProduct);
-    Assert.Equal("Laptop Stand", createdProduct.Name);
-    Assert.Equal("Silver", createdProduct.Colour);
-}
-
-[Fact]
-public async Task GetProducts_ByColour_WithValidToken_ReturnsMatchingProducts()
-{
-    var token = await GetAccessTokenAsync();
-
-    _client.DefaultRequestHeaders.Authorization =
-        new AuthenticationHeaderValue("Bearer", token);
-
-    await _client.PostAsJsonAsync("/api/products", new CreateProductRequest
+    [Fact]
+    public async Task PostProducts_WithValidToken_ReturnsCreated()
     {
-        Name = "Mechanical Keyboard",
-        Description = "RGB keyboard",
-        Colour = "Red",
-        Price = 89.99m
-    });
+        await AuthenticateAsync();
 
-    await _client.PostAsJsonAsync("/api/products", new CreateProductRequest
+        var request = new CreateProductRequest
+        {
+            Name = "Laptop Stand",
+            Description = "Adjustable aluminum stand",
+            Colour = "Silver",
+            Price = 34.99m
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/products", request);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        var createdProduct = await response.Content.ReadFromJsonAsync<ProductResponse>();
+
+        Assert.NotNull(createdProduct);
+        Assert.Equal("Laptop Stand", createdProduct.Name);
+        Assert.Equal("Silver", createdProduct.Colour);
+        Assert.Equal(34.99m, createdProduct.Price);
+    }
+
+    [Fact]
+    public async Task PostProducts_WithTooManyPriceDecimals_ReturnsBadRequestProblemDetails()
     {
-        Name = "USB Headset",
-        Description = "Noise cancelling headset",
-        Colour = "Blue",
-        Price = 59.99m
-    });
+        await AuthenticateAsync();
 
-    var response = await _client.GetAsync("/api/products?colour=red");
+        var request = new CreateProductRequest
+        {
+            Name = "Precision Test",
+            Description = "Invalid price precision",
+            Colour = "Black",
+            Price = 10.999m
+        };
 
-    Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var response = await _client.PostAsJsonAsync("/api/products", request);
 
-    var products = await response.Content.ReadFromJsonAsync<List<ProductResponse>>();
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+    }
 
-    Assert.NotNull(products);
-    Assert.Contains(products, p => p.Colour.Equals("Red", StringComparison.OrdinalIgnoreCase));
-    Assert.DoesNotContain(products, p => p.Colour.Equals("Blue", StringComparison.OrdinalIgnoreCase));
-}
-
-private async Task<string> GetAccessTokenAsync()
-{
-    var loginRequest = new LoginRequest
+    [Fact]
+    public async Task PostProducts_WithTooLongName_ReturnsBadRequestProblemDetails()
     {
-        Username = "admin",
-        Password = "Password123!"
-    };
+        await AuthenticateAsync();
 
-    var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
-    loginResponse.EnsureSuccessStatusCode();
+        var request = new CreateProductRequest
+        {
+            Name = new string('A', 201),
+            Description = "Invalid name length",
+            Colour = "Black",
+            Price = 10.00m
+        };
 
-    var content = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
+        var response = await _client.PostAsJsonAsync("/api/products", request);
 
-    Assert.NotNull(content);
-    Assert.False(string.IsNullOrWhiteSpace(content.Token));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+    }
 
-    return content.Token;
-}
+    [Fact]
+    public async Task GetProducts_ByColour_WithValidToken_ReturnsMatchingProducts()
+    {
+        await AuthenticateAsync();
+
+        await _client.PostAsJsonAsync("/api/products", new CreateProductRequest
+        {
+            Name = "Mechanical Keyboard",
+            Description = "RGB keyboard",
+            Colour = "Red",
+            Price = 89.99m
+        });
+
+        await _client.PostAsJsonAsync("/api/products", new CreateProductRequest
+        {
+            Name = "USB Headset",
+            Description = "Noise cancelling headset",
+            Colour = "Blue",
+            Price = 59.99m
+        });
+
+        var response = await _client.GetAsync("/api/products?colour=red");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var products = await response.Content.ReadFromJsonAsync<List<ProductResponse>>();
+
+        Assert.NotNull(products);
+        Assert.Contains(products, product =>
+            product.Colour.Equals("Red", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(products, product =>
+            product.Colour.Equals("Blue", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task AuthenticateAsync()
+    {
+        var loginRequest = new LoginRequest
+        {
+            Username = CustomWebApplicationFactory.TestUsername,
+            Password = CustomWebApplicationFactory.TestPassword
+        };
+
+        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        loginResponse.EnsureSuccessStatusCode();
+
+        var content = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
+
+        Assert.NotNull(content);
+        Assert.False(string.IsNullOrWhiteSpace(content.Token));
+
+        _client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", content.Token);
+    }
 }

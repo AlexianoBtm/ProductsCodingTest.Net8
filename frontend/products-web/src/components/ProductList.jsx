@@ -1,14 +1,20 @@
 function ProductList({ products }) {
   return (
-    <div className="card">
-      <h2>Products</h2>
+    <section className="card products-section">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">LOCAL DATA</p>
+          <h2>Products</h2>
+        </div>
+        <span className="count-badge">{products.length}</span>
+      </div>
 
       {products.length === 0 ? (
         <p className="muted">No products found.</p>
       ) : (
         <div className="products-grid">
           {products.map((product) => (
-            <div key={product.id} className="product-item">
+            <article key={product.id} className="product-item">
               <h3>{product.name}</h3>
               <p>{product.description || "No description provided."}</p>
               <p>
@@ -20,11 +26,11 @@ function ProductList({ products }) {
               <p className="muted">
                 Created: {new Date(product.createdAtUtc).toLocaleString()}
               </p>
-            </div>
+            </article>
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 

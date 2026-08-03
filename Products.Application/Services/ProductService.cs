@@ -6,6 +6,11 @@ namespace Products.Application.Services;
 
 public class ProductService : IProductService
 {
+    private const int MaxNameLength = 200;
+    private const int MaxDescriptionLength = 1000;
+    private const int MaxColourLength = 100;
+    private const decimal MaxPrice = 999999999999.99m;
+
     private readonly IProductRepository _productRepository;
 
     public ProductService(IProductRepository productRepository)
@@ -31,8 +36,6 @@ public class ProductService : IProductService
         var savedProduct = await _productRepository.AddAsync(product, cancellationToken);
 
         return MapToResponse(savedProduct);
-
-        
     }
 
     public async Task<IReadOnlyList<ProductResponse>> GetAllAsync(
@@ -69,11 +72,26 @@ public class ProductService : IProductService
         if (string.IsNullOrWhiteSpace(request.Name))
             throw new ArgumentException("Product name is required.", nameof(request.Name));
 
+        if (request.Name.Trim().Length > MaxNameLength)
+            throw new ArgumentException($"Product name cannot exceed {MaxNameLength} characters.", nameof(request.Name));
+
+        if (request.Description?.Trim().Length > MaxDescriptionLength)
+            throw new ArgumentException($"Product description cannot exceed {MaxDescriptionLength} characters.", nameof(request.Description));
+
         if (string.IsNullOrWhiteSpace(request.Colour))
             throw new ArgumentException("Product colour is required.", nameof(request.Colour));
 
+        if (request.Colour.Trim().Length > MaxColourLength)
+            throw new ArgumentException($"Product colour cannot exceed {MaxColourLength} characters.", nameof(request.Colour));
+
         if (request.Price <= 0)
             throw new ArgumentException("Product price must be greater than 0.", nameof(request.Price));
+
+        if (request.Price > MaxPrice)
+            throw new ArgumentException($"Product price cannot exceed {MaxPrice}.", nameof(request.Price));
+
+        if (decimal.Round(request.Price, 2) != request.Price)
+            throw new ArgumentException("Product price cannot contain more than two decimal places.", nameof(request.Price));
     }
 
     private static ProductResponse MapToResponse(Product product)

@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-function ProductFilter({ onFilter, onClear, isLoading }) {
+function ProductFilter({ onFilter, onClear, isLoading, isAuthenticated }) {
   const [colour, setColour] = useState("");
 
   function handleSubmit(event) {
@@ -14,7 +14,7 @@ function ProductFilter({ onFilter, onClear, isLoading }) {
   }
 
   return (
-    <div className="card">
+    <div className="card workspace-card compact-card">
       <h2>Filter by Colour</h2>
 
       <form onSubmit={handleSubmit} className="inline-form">
@@ -25,11 +25,20 @@ function ProductFilter({ onFilter, onClear, isLoading }) {
           placeholder="Enter a colour, e.g. Black"
         />
 
-        <button type="submit" disabled={isLoading}>
+        <button
+          className="button button-primary"
+          type="submit"
+          disabled={isLoading || !isAuthenticated}
+        >
           {isLoading ? "Filtering..." : "Filter"}
         </button>
 
-        <button type="button" onClick={handleClear} disabled={isLoading}>
+        <button
+          className="button button-secondary"
+          type="button"
+          onClick={handleClear}
+          disabled={isLoading || !isAuthenticated}
+        >
           Clear
         </button>
       </form>

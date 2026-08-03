@@ -13,6 +13,12 @@ function App() {
   const [productsMessage, setProductsMessage] = useState("");
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
 
+  function handleLogout(message = "Logged out.") {
+    clearToken();
+    setProducts([]);
+    setProductsMessage(message);
+  }
+
   async function loadProducts() {
     if (!token) {
       setProductsMessage("You must login first.");
@@ -27,6 +33,11 @@ function App() {
       setProducts(result);
       setProductsMessage(`Loaded ${result.length} product(s).`);
     } catch (error) {
+      if (error.status === 401) {
+        handleLogout("Your demo session expired. Sign in again.");
+        return;
+      }
+
       setProductsMessage(error.message || "Failed to load products.");
     } finally {
       setIsLoadingProducts(false);
@@ -52,6 +63,11 @@ function App() {
       setProducts(result);
       setProductsMessage(`Found ${result.length} product(s) for colour "${colour}".`);
     } catch (error) {
+      if (error.status === 401) {
+        handleLogout("Your demo session expired. Sign in again.");
+        return;
+      }
+
       setProductsMessage(error.message || "Failed to filter products.");
     } finally {
       setIsLoadingProducts(false);
@@ -62,56 +78,80 @@ function App() {
     await loadProducts();
   }
 
-  function handleLogout() {
-    clearToken();
-    setProducts([]);
-    setProductsMessage("Logged out.");
-  }
-
   return (
-    <div className="app-container">
-      <h1 className="app-title">Products Coding Test</h1>
-      <p className="app-subtitle">
-        React frontend connected to the .NET Products API.
-      </p>
+    <main className="app-container">
+      <header className="hero">
+        <div>
+          <p className="eyebrow">PUBLIC TECHNICAL SAMPLE</p>
+          <h1 className="app-title">Layered Products API</h1>
+          <p className="app-subtitle">
+            A focused .NET 8 and React sample for authenticated product workflows.
+          </p>
+        </div>
+        <div className="tech-stack" aria-label="Technology stack">
+          <span>.NET 8</span>
+          <span>React</span>
+          <span>SQLite</span>
+          <span>JWT</span>
+        </div>
+      </header>
 
-      <HealthStatus />
+      <section className="status-grid" aria-label="System status and demo access">
+        <HealthStatus />
+        <LoginForm onLoginSuccess={setToken} />
+      </section>
 
-      <LoginForm onLoginSuccess={setToken} />
-
-      <div className="card">
+      <section className="card session-card">
         <div className="top-bar">
           <div>
             <h2>Session</h2>
             <p className="muted">
-              {isAuthenticated ? "Authenticated" : "Not authenticated"}
+              {isAuthenticated
+                ? "Demo session authenticated"
+                : "Sign in with credentials configured on the local API"}
             </p>
           </div>
 
           <div className="button-row">
-            <button onClick={loadProducts} disabled={isLoadingProducts}>
+            <button
+              className="button button-primary"
+              onClick={loadProducts}
+              disabled={isLoadingProducts || !isAuthenticated}
+            >
               {isLoadingProducts ? "Loading..." : "Load Products"}
             </button>
-            <button onClick={handleLogout}>Logout</button>
+            <button
+              className="button button-secondary"
+              onClick={() => handleLogout()}
+              disabled={!isAuthenticated}
+            >
+              Logout
+            </button>
           </div>
         </div>
 
         {productsMessage && <div className="message">{productsMessage}</div>}
-      </div>
+      </section>
 
-      <ProductFilter
-        onFilter={filterProducts}
-        onClear={loadProducts}
-        isLoading={isLoadingProducts}
-      />
+      <section className="workspace-grid" aria-label="Product workspace">
+        <ProductFilter
+          onFilter={filterProducts}
+          onClear={loadProducts}
+          isLoading={isLoadingProducts}
+          isAuthenticated={isAuthenticated}
+        />
 
-      <CreateProductForm
-        token={token}
-        onProductCreated={handleProductCreated}
-      />
+        <CreateProductForm
+          token={token}
+          onProductCreated={handleProductCreated}
+          onUnauthorized={() =>
+            handleLogout("Your demo session expired. Sign in again.")
+          }
+        />
+      </section>
 
       <ProductList products={products} />
-    </div>
+    </main>
   );
 }
 
