@@ -18,22 +18,40 @@ function HealthStatus() {
   }
 
   useEffect(() => {
-    loadHealth();
+    let isCurrent = true;
+
+    getHealthStatus()
+      .then((result) => {
+        if (isCurrent) {
+          setStatus(result.status || "Unknown");
+        }
+      })
+      .catch((error) => {
+        if (isCurrent) {
+          setStatus("Unavailable");
+          setErrorMessage(error.message || "Health check failed.");
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
   }, []);
 
   return (
-    <div className="card">
+    <div className="card status-card">
       <div className="top-bar">
         <div>
           <h2>Health Status</h2>
           <p className="muted">Backend availability check.</p>
         </div>
 
-        <button onClick={loadHealth}>Refresh</button>
+        <button className="button button-secondary" onClick={loadHealth}>Refresh</button>
       </div>
 
-      <p>
-        <strong>Status:</strong> {status}
+      <p className="health-value">
+        <span className={`status-dot status-${status.toLowerCase()}`} aria-hidden="true" />
+        <strong>{status}</strong>
       </p>
 
       {errorMessage && <div className="message error">{errorMessage}</div>}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createProduct } from "../api/productsApi";
 
-function CreateProductForm({ token, onProductCreated }) {
+function CreateProductForm({ token, onProductCreated, onUnauthorized }) {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -54,6 +54,11 @@ function CreateProductForm({ token, onProductCreated }) {
 
       onProductCreated();
     } catch (error) {
+      if (error.status === 401) {
+        onUnauthorized();
+        return;
+      }
+
       setErrorMessage(error.message || "Failed to create product.");
     } finally {
       setIsSubmitting(false);
@@ -61,8 +66,9 @@ function CreateProductForm({ token, onProductCreated }) {
   }
 
   return (
-    <div className="card">
+    <div className="card workspace-card">
       <h2>Create Product</h2>
+      <p className="muted">Add a synthetic item to the local SQLite database.</p>
 
       <form onSubmit={handleSubmit}>
         <div className="form-row">
@@ -73,6 +79,8 @@ function CreateProductForm({ token, onProductCreated }) {
             value={formData.name}
             onChange={handleChange}
             placeholder="Product name"
+            maxLength="200"
+            required
           />
         </div>
 
@@ -84,6 +92,7 @@ function CreateProductForm({ token, onProductCreated }) {
             value={formData.description}
             onChange={handleChange}
             placeholder="Product description"
+            maxLength="1000"
           />
         </div>
 
@@ -95,6 +104,8 @@ function CreateProductForm({ token, onProductCreated }) {
             value={formData.colour}
             onChange={handleChange}
             placeholder="Product colour"
+            maxLength="100"
+            required
           />
         </div>
 
@@ -105,14 +116,20 @@ function CreateProductForm({ token, onProductCreated }) {
             name="price"
             type="number"
             step="0.01"
+            min="0.01"
             value={formData.price}
             onChange={handleChange}
             placeholder="0.00"
+            required
           />
         </div>
 
         <div className="button-row">
-          <button type="submit" disabled={isSubmitting}>
+          <button
+            className="button button-primary"
+            type="submit"
+            disabled={isSubmitting || !token}
+          >
             {isSubmitting ? "Creating..." : "Create Product"}
           </button>
         </div>

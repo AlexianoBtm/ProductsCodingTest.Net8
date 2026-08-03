@@ -36,6 +36,14 @@ TestResults/
 **/TestResults/
 
 # Local database
-Products.Api/products.db
-Products.Api/*.db-shm
-Products.Api/*.db-wal
+*.db
+*.db-shm
+*.db-wal
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+**/appsettings.Local.json
+secrets.json

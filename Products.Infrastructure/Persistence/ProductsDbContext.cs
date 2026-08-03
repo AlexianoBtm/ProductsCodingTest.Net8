@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Products.Domain.Entities;
 
 namespace Products.Infrastructure.Persistence;
@@ -16,10 +15,6 @@ public class ProductsDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-
-        var decimalConverter = new ValueConverter<decimal, double>(
-            v => Convert.ToDouble(v),
-            v => Convert.ToDecimal(v));
 
         modelBuilder.Entity<Product>(entity =>
         {
@@ -39,7 +34,8 @@ public class ProductsDbContext : DbContext
                 .HasMaxLength(100);
 
             entity.Property(p => p.Price)
-                .HasConversion(decimalConverter)
+                .HasConversion<string>()
+                .HasMaxLength(32)
                 .IsRequired();
 
             entity.Property(p => p.CreatedAtUtc)

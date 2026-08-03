@@ -1,428 +1,107 @@
-# Products API — Architecture Overview
+# Layered Products API — Architecture Overview
 
-## Purpose
+## Purpose and classification
 
-This repository contains a small full-stack product management sample built with **.NET 8** and a simple **React + Vite** frontend.
+This repository is a public technical sample, originally built as a coding exercise. It demonstrates a compact full-stack workflow; it is not client work, a deployed production system, or an implementation of microservices or event-driven architecture.
 
-The goal of the solution is to provide a clean, practical implementation that is easy to run locally and organized with clear architectural boundaries. The project keeps the scope intentionally small while using realistic technical choices such as JWT authentication, persistent storage, automated tests, and a frontend that integrates with the API.
-
----
-
-## Scope
-
-The solution includes:
-
-- a public health endpoint
-- authentication through JWT
-- protected endpoints to create and retrieve products
-- product filtering by colour
-- unit tests
-- integration tests
-- a React frontend that consumes the API
-- architecture documentation that shows how the service is organized and how it could fit into a broader distributed system
-
----
-
-## Technology Stack
-
-### Backend
-- .NET 8
-- ASP.NET Core Web API
-- Entity Framework Core
-- SQLite
-- JWT Bearer Authentication
-- Swagger / OpenAPI
-
-### Testing
-- xUnit
-- Unit tests for application logic
-- Integration tests for real HTTP/API behavior
-
-### Frontend
-- React
-- Vite
-
----
-
-## Solution Structure
-
-The repository is organized into separate projects with clear responsibilities:
+## Implemented topology
 
 ```text
-ProductsCodingTest.Net8/
-├── Products.Api/
-├── Products.Application/
-├── Products.Domain/
-├── Products.Infrastructure/
-├── Products.UnitTests/
-├── Products.IntegrationTests/
-├── frontend/
-│   └── products-web/
-├── docs/
-└── README.md
-```
-
-This structure follows a layered architecture and keeps responsibilities separated clearly.
-
----
-
-## Layer Responsibilities
-
-### Products.Domain
-
-Contains the core domain model.
-
-**Current responsibility**
-- Defines the `Product` entity
-
-**Why it exists**
-- Keeps the business concept of a product independent from HTTP, persistence, or UI concerns
-
----
-
-### Products.Application
-
-Contains application logic, contracts, DTOs, and configuration abstractions used by the business layer.
-
-**Current responsibilities**
-- Product DTOs
-- Auth DTOs
-- Service interfaces
-- Repository interfaces
-- Application services
-- JWT options configuration class
-
-**Important architectural note**
-
-`JwtOptions` is intentionally placed in **Products.Application.Configuration**, not in the API project. This keeps configuration models used by the token service in the application layer and preserves cleaner dependency direction.
-
----
-
-### Products.Infrastructure
-
-Contains persistence and external implementation details.
-
-**Current responsibilities**
-- `ProductsDbContext`
-- EF Core configuration
-- SQLite persistence
-- Repository implementation
-- EF Core migrations
-- Infrastructure dependency injection wiring
-
-**Why it exists**
-- Keeps database concerns separate from application logic and HTTP concerns
-
----
-
-### Products.Api
-
-Contains the HTTP layer and application startup configuration.
-
-**Current responsibilities**
-- Controllers
-- Authentication wiring
-- Authorization setup
-- Swagger configuration
-- CORS configuration
-- Dependency injection registration
-- Request pipeline setup
-
-**Why it exists**
-- Exposes the application as a usable API and keeps transport concerns out of the core layers
-
----
-
-### Products.UnitTests
-
-Contains isolated tests for application logic.
-
-**Current responsibilities**
-- Tests for `ProductService`
-- Fake repository used to verify business rules without a real database
-
----
-
-### Products.IntegrationTests
-
-Contains end-to-end tests for API behavior.
-
-**Current responsibilities**
-- Health endpoint tests
-- Login endpoint tests
-- Protected products endpoint tests
-- Integration host setup with test database migration handling
-
----
-
-### frontend/products-web
-
-Contains the React frontend that consumes the API.
-
-**Current responsibilities**
-- Health status display
-- Login flow
-- Products list
-- Product creation form
-- Colour filtering
-
----
-
-## Domain Model
-
-The main entity in the system is `Product`.
-
-### Product fields
-- `Id`
-- `Name`
-- `Description`
-- `Colour`
-- `Price`
-- `CreatedAtUtc`
-
-This model is intentionally simple. It is realistic enough to support the application cleanly without introducing unnecessary complexity.
-
----
-
-## API Design
-
-### Public endpoints
-
-#### `GET /health`
-
-Used to verify that the service is running.
-
-**Expected response**
-
-```json
-{
-  "status": "OK"
-}
-```
-
-#### `POST /api/auth/login`
-
-Used to obtain a JWT for protected endpoints.
-
-**Demo credentials**
-- Username: `admin`
-- Password: `Password123!`
-
-**Response**
-- JWT token
-- Expiration timestamp
-
----
-
-### Protected endpoints
-
-#### `GET /api/products`
-
-Returns all products as JSON.
-
-#### `GET /api/products?colour=Black`
-
-Returns products filtered by colour.
-
-**Behavior**
-- colour filtering is case-insensitive
-- returns an empty array when there are no matches
-
-#### `POST /api/products`
-
-Creates a new product.
-
-**Validation rules**
-- `Name` is required
-- `Colour` is required
-- `Price` must be greater than `0`
-
----
-
-## Authentication Flow
-
-The project uses **JWT Bearer Authentication** for protected endpoints.
-
-### Current flow
-1. The user logs in through `POST /api/auth/login`
-2. The API validates the demo credentials
-3. A JWT is generated through the token service
-4. The frontend or Swagger sends the token as a Bearer token
-5. Protected endpoints require that token
-
-### Why JWT was chosen
-
-JWT provides a realistic secured API flow and reflects a common approach for protecting HTTP endpoints in modern applications.
-
----
-
-## Persistence Flow
-
-The project uses **SQLite** through **Entity Framework Core**.
-
-### Current persistence path
-1. Request reaches the API controller
-2. Controller calls the application service
-3. Application service applies validation and mapping
-4. Repository persists or queries data through EF Core
-5. Data is stored in SQLite
-
-### Why SQLite was chosen
-
-SQLite provides real persistence without adding unnecessary setup complexity for local execution. It keeps the project practical while remaining easy to run.
-
----
-
-## Frontend Flow
-
-The React frontend is intentionally simple and focused on proving integration rather than visual complexity.
-
-### Current frontend features
-- login
-- health status check
-- products list
-- colour filter
-- create product form
-
-### Integration details
-- the frontend calls the backend API directly
-- JWT is stored temporarily for authenticated calls
-- CORS is configured in the API so the frontend can call the backend during local development
-
-This keeps the frontend functional, clear, and aligned with the scope of the project.
-
----
-
-## Testing Strategy
-
-### Unit Tests
-
-The unit tests focus on application logic in `ProductService`.
-
-**Covered behavior**
-- creating a valid product
-- rejecting empty name
-- rejecting empty colour
-- rejecting invalid price
-- returning all products
-- filtering by colour
-- case-insensitive colour filtering
-
----
-
-### Integration Tests
-
-The integration tests verify real API behavior end to end.
-
-**Covered behavior**
-- `GET /health` returns `200 OK`
-- `POST /api/auth/login` returns a valid token for correct credentials
-- protected product endpoints return `401 Unauthorized` without a token
-- product creation succeeds with a valid token
-- product listing succeeds with a valid token
-- colour filtering returns matching products only
-
----
-
-## High-Level Request Flow
-
-### Create Product
-1. User logs in
-2. User receives JWT
-3. Frontend sends authenticated request to `POST /api/products`
-4. API validates input
-5. Application service creates the domain entity
-6. Repository stores it in SQLite
-7. API returns `201 Created`
-
-### List Products
-1. User is authenticated
-2. Frontend calls `GET /api/products`
-3. API retrieves data through the application and infrastructure layers
-4. API returns a JSON array of products
-
-### Filter by Colour
-1. Frontend sends `GET /api/products?colour=...`
-2. API applies case-insensitive filtering
-3. API returns matching results
-
----
-
-## Event-Driven Architecture Positioning
-
-This project does **not** implement real event publishing or a real message broker. However, the service is documented in a way that shows how it could later fit into a broader distributed or event-driven architecture.
-
-A simple conceptual future flow would be:
-
-```text
-React Frontend
+React client
+    │ HTTP + Bearer token
+    ▼
+Products.Api
     │
     ▼
-Products API
-    │
-    ├── SQLite Database
-    │
-    └── ProductCreated event
-            │
-            ├── Orders Service
-            └── Payments Service
+Products.Application
+    │ repository interface
+    ▼
+Products.Infrastructure
+    │ EF Core
+    ▼
+SQLite
 ```
 
-### Interpretation
-- the frontend interacts with the Products API
-- the Products API persists product data
-- after product creation, the service could later publish a `ProductCreated` event
-- other services could consume that event depending on business needs
+### `Products.Domain`
 
-This architecture note is conceptual documentation only and is not implemented physically in the current project.
+Defines the `Product` entity independently of HTTP and persistence.
 
----
+### `Products.Application`
 
-## Key Design Decisions
+Contains DTOs, service and repository contracts, product validation, mapping, and token creation. `JwtOptions` and `DemoAuthOptions` describe configuration consumed by application/API services.
 
-### Why .NET 8
-The project uses `.NET 8` as a modern and current stack choice.
+### `Products.Infrastructure`
 
-### Why layered architecture
-It keeps responsibilities clear:
-- domain model stays clean
-- application logic stays testable
-- infrastructure stays replaceable
-- API stays focused on HTTP concerns
+Implements the EF Core `ProductsDbContext`, repository, dependency registration, and SQLite migrations. Decimal prices are stored as text to avoid converting monetary values through binary floating point.
 
-### Why JWT
-It gives the protected endpoints a realistic authentication flow.
+### `Products.Api`
 
-### Why SQLite
-It provides real persistence with minimal local setup overhead.
+Owns controllers, authentication/authorization wiring, configurable CORS, Swagger, centralized exception responses, startup migration, and the database-aware health endpoint.
 
-### Why React + Vite
-It gives a modern frontend with fast local startup and enough capability to demonstrate full-stack integration.
+### Test projects
 
----
+- `Products.UnitTests` checks application rules without a database.
+- `Products.IntegrationTests` starts the real HTTP pipeline with unique temporary SQLite databases and test-only in-memory credentials.
 
-## Current State
+### `frontend/products-web`
 
-At this stage, the solution includes:
+Provides login, health reporting, product creation, listing, and colour filtering. The client reads its API URL from `VITE_API_BASE_URL`, keeps the short-lived JWT in `sessionStorage`, checks expiration, and clears the session on `401` responses.
 
-- completed backend architecture
-- working persistence
-- public health and login endpoints
-- protected product endpoints
-- working React frontend
-- unit tests
-- integration tests
+## Request flow
 
----
+### Login
 
-## Final Notes
+1. The client posts locally configured demo credentials to `POST /api/auth/login`.
+2. The API compares them with configuration supplied outside source control.
+3. `TokenService` creates a short-lived JWT with configured issuer, audience, and signing key.
+4. The client keeps the token for the current browser tab/session only.
 
-This solution is intentionally designed to be:
+### Create product
 
-- small in scope
-- clear in structure
-- realistic in implementation
-- easy to run locally
-- professional without unnecessary complexity
+1. The client sends an authenticated request to `POST /api/products`.
+2. ASP.NET Core validates required fields, lengths, and the allowed price range.
+3. `ProductService` repeats critical business validation, trims text, and creates the entity.
+4. `ProductRepository` persists it through EF Core/SQLite.
+5. The API returns `201 Created` with the product representation.
 
-The emphasis is on sound engineering judgment, clear separation of concerns, and a practical end-to-end flow.
+### Read and filter
+
+1. An authenticated request reaches `GET /api/products`.
+2. The application selects all products or delegates a case-insensitive colour filter.
+3. Results are ordered by creation time and returned as JSON.
+
+## Validation and errors
+
+- Name: required, maximum 200 characters
+- Description: maximum 1,000 characters
+- Colour: required, maximum 100 characters
+- Price: `0.01` through `999999999999.99`, maximum two decimal places
+- Model-binding errors use ASP.NET Core validation Problem Details.
+- Service validation and unexpected exceptions pass through the centralized exception handler.
+- Internal exception details are not returned for unexpected errors.
+
+## Persistence and migrations
+
+SQLite keeps local setup small and reproducible. The API applies migrations during startup. Integration tests use a different temporary database per fixture and reset product data between tests.
+
+This startup-migration approach is suitable for the sample; coordinated production migration would require a separate deployment strategy.
+
+## Security boundary
+
+The authentication flow demonstrates protected API calls, not production identity. It intentionally excludes:
+
+- registration or account management;
+- password hashing and a credential store;
+- roles, permissions, refresh tokens, revocation, or rotation;
+- cross-site request protections for cookie authentication;
+- distributed key management.
+
+Required credentials are supplied through User Secrets or environment variables and validated at startup. The frontend uses `sessionStorage`, but a production client would require a threat model and a deliberate session strategy.
+
+## Health behavior
+
+`GET /health` returns `200` only when the API can connect to SQLite. It returns `503` when the database is unavailable. This is a functional readiness signal for the sample, not a complete observability solution.
+
+## Explicit non-capabilities
+
+The current code does not implement message publishing, a broker, microservices, deployment automation, production monitoring, payments, multi-tenancy, or business outcome tracking. Any future architecture discussion must remain separate from claims about the implemented repository.

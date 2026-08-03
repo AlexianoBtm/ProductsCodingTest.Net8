@@ -1,49 +1,26 @@
-# Products API
+# Layered Products API with .NET 8 and React
 
-A small full-stack product management sample built with .NET 8 and React.
+[![CI](https://github.com/AlexianoBtm/ProductsCodingTest.Net8/actions/workflows/ci.yml/badge.svg)](https://github.com/AlexianoBtm/ProductsCodingTest.Net8/actions/workflows/ci.yml)
 
-The solution includes a secure Products API, a simple React frontend, automated tests, and supporting documentation. It is designed to be straightforward to run locally while keeping a clean layered architecture and realistic implementation choices.
+> **Project classification:** public technical sample, originally built as a coding exercise. It is not client work, paid work, a production system, or evidence of commercial results.
 
-## Overview
+This repository demonstrates a small authenticated product workflow across an ASP.NET Core API, EF Core/SQLite persistence, automated .NET tests, and a React/Vite client. The scope is intentionally narrow so the code and trade-offs can be reviewed quickly.
 
-This repository contains:
+## What it demonstrates
 
-- A .NET 8 Web API for product management
-- JWT-based authentication
-- SQLite persistence with automatic startup migrations
-- Unit and integration tests
-- A React + Vite frontend that consumes the API
-- Architecture documentation for the overall solution shape
+- Layered .NET solution with Domain, Application, Infrastructure, and API projects
+- JWT-protected product endpoints using local demo authentication
+- EF Core migrations and SQLite persistence
+- Product creation, listing, and case-insensitive colour filtering
+- Consistent API validation and Problem Details error responses
+- Database-aware health reporting
+- Isolated unit and HTTP integration tests
+- React client with session-expiry handling and configurable API URL
+- CI checks for backend build/tests and frontend lint/build/audit
 
-## Features
+It does **not** demonstrate production identity, distributed systems, payments, deployment, multi-user authorization, or a production security posture.
 
-- Public health endpoint
-- Login endpoint that returns a JWT
-- Protected product endpoints
-- Create product
-- List products
-- Filter products by colour
-- Frontend integration for login, health check, listing, filtering, and product creation
-
-## Tech Stack
-
-### Backend
-- .NET 8
-- ASP.NET Core Web API
-- Entity Framework Core
-- SQLite
-- JWT Bearer Authentication
-- Swagger / OpenAPI
-
-### Frontend
-- React
-- Vite
-
-### Testing
-- xUnit
-- ASP.NET Core integration testing
-
-## Solution Structure
+## Solution structure
 
 ```text
 ProductsCodingTest.Net8/
@@ -53,132 +30,124 @@ ProductsCodingTest.Net8/
 ├── Products.Infrastructure/
 ├── Products.UnitTests/
 ├── Products.IntegrationTests/
-├── frontend/
-│   └── products-web/
+├── frontend/products-web/
 ├── docs/
-└── README.md
+└── .github/workflows/ci.yml
 ```
 
-## Architecture Summary
+See [Architecture overview](docs/architecture-overview.md) for responsibilities, request flow, and explicit limitations.
 
-The backend follows a layered structure:
+## API surface
 
-- **Products.Domain**: core domain model
-- **Products.Application**: DTOs, interfaces, services, and application logic
-- **Products.Infrastructure**: EF Core persistence and repository implementations
-- **Products.Api**: HTTP endpoints, authentication, Swagger, and app startup
-- **Products.UnitTests**: unit tests for application logic
-- **Products.IntegrationTests**: end-to-end API behavior tests
-- **frontend/products-web**: React client application
+| Access | Endpoint | Purpose |
+|---|---|---|
+| Public | `GET /health` | Confirms API and database availability |
+| Public | `POST /api/auth/login` | Issues a short-lived JWT for the configured local demo user |
+| Protected | `GET /api/products` | Lists products |
+| Protected | `GET /api/products?colour=Black` | Filters products by colour |
+| Protected | `POST /api/products` | Creates a product after validation |
 
-## API Endpoints
+## Prerequisites
 
-### Public
-- `GET /health`
-- `POST /api/auth/login`
+- .NET 8 SDK
+- Node.js 22 or a Vite-compatible Node.js 20 release
+- npm
 
-### Protected
-- `GET /api/products`
-- `GET /api/products?colour=Black`
-- `POST /api/products`
+## Configure local-only credentials
 
-## Demo Credentials
+No JWT signing key or demo password is stored in source control. Configure your own local values with .NET User Secrets:
 
-Use the following credentials to obtain a JWT:
+```bash
+dotnet user-secrets set --project Products.Api "Jwt:Key" "<random-value-of-at-least-32-bytes>"
+dotnet user-secrets set --project Products.Api "DemoAuth:Password" "<your-local-demo-password>"
+```
+
+The default local demo username is `demo`. It is non-secret and can be overridden with `DemoAuth:Username`.
+
+Environment variables are also supported through .NET's standard double-underscore mapping:
 
 ```text
-Username: admin
-Password: Password123!
+Jwt__Key
+DemoAuth__Username
+DemoAuth__Password
+ConnectionStrings__ProductsDb
+Frontend__AllowedOrigins__0
 ```
 
-## Running the Backend
+The API fails at startup when required credentials are missing or too short. Do not reuse local demo values in another application.
+
+## Run the backend
 
 From the repository root:
 
 ```bash
 dotnet restore
-dotnet build
+dotnet build --no-restore
 dotnet run --project Products.Api
 ```
 
-Notes:
+The API uses `Products.Api/products.db` by default and applies migrations on startup. Swagger is available in the Development environment.
 
-- The API uses SQLite locally.
-- Database migrations are applied automatically on startup.
-- Swagger is available once the API is running.
-
-## Running the Frontend
-
-Open a second terminal:
+## Run the frontend
 
 ```bash
 cd frontend/products-web
-npm install
+cp .env.example .env
+npm ci
 npm run dev
 ```
 
-Default local frontend URL:
+`VITE_API_BASE_URL` defaults to `http://localhost:5193` and can be changed in the local `.env` file.
 
-```text
-http://localhost:5173
-```
+## Validate the repository
 
-## Running Tests
-
-Run all tests:
+Backend:
 
 ```bash
-dotnet test
+dotnet restore
+dotnet build --no-restore --configuration Release
+dotnet test --no-build --configuration Release
+dotnet list ProductsCodingTest.sln package --vulnerable --include-transitive
 ```
 
-Or run them by project:
+Frontend:
 
 ```bash
-dotnet test Products.UnitTests
-dotnet test Products.IntegrationTests
+cd frontend/products-web
+npm ci
+npm run lint
+npm run build
+npm audit --audit-level=high
 ```
 
-## Authentication in Swagger
+GitHub Actions runs these checks for pushes and pull requests targeting `main`.
 
-1. Run the API
-2. Open Swagger
-3. Call `POST /api/auth/login`
-4. Copy the returned token
-5. Click **Authorize**
-6. Enter:
+## Security model and limitations
 
-```text
-Bearer <your-token>
-```
+- Authentication is deliberately a local single-user demo configured outside source control.
+- The demo password is compared directly; there is no user store, password hashing, refresh token, role model, or account lifecycle.
+- JWTs are kept in browser `sessionStorage`, removed on logout, and rejected by the client after expiry.
+- CORS origins and the frontend API URL are configurable.
+- The historical JWT key and demo password in earlier commits were synthetic, exclusive to this sample, and are treated as permanently public and invalid.
+- This code must be redesigned before any production or internet-facing deployment.
 
-## Example Product Request
+See [SECURITY.md](SECURITY.md) for reporting guidance.
 
-```json
-{
-  "name": "Gaming Mouse",
-  "description": "Wireless mouse",
-  "colour": "Black",
-  "price": 49.99
-}
-```
+## Data and content
 
-## Local Notes
+The repository contains no client, patient, employee, or other real operational data. Products created during local use remain in an ignored SQLite database. All repository-specific code and graphics were created for this sample and may be published as portfolio evidence.
 
-If PowerShell blocks `npm`, use:
+## Deliberate exclusions
 
-```bash
-npm.cmd install
-npm.cmd run dev
-```
+- Production authentication and authorization
+- Edit/delete endpoints and pagination
+- Container or cloud deployment
+- Message broker or event publishing
+- Frontend automated tests
+- Production observability and service-level objectives
 
-## Documentation
+These are scope boundaries, not claims of implemented capability.
 
-Additional project documentation is available in the `docs` folder.
+## License
 
-## Possible Future Improvements
-
-- Docker support for API and frontend
-- Seed data for local development
-- Centralized exception handling
-- Improved validation response formatting
-- UI polish and better state handling
+The source is publicly viewable for portfolio evaluation. No open-source reuse license is granted; see [LICENSE](LICENSE).

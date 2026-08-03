@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../config";
+import { createApiError } from "./apiError";
 
 function buildAuthHeaders(token) {
   return {
@@ -14,7 +15,7 @@ export async function getProducts(token) {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to load products.");
+    throw await createApiError(response, "Failed to load products.");
   }
 
   return await response.json();
@@ -29,7 +30,7 @@ export async function getProductsByColour(token, colour) {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to filter products.");
+    throw await createApiError(response, "Failed to filter products.");
   }
 
   return await response.json();
@@ -43,17 +44,7 @@ export async function createProduct(token, product) {
   });
 
   if (!response.ok) {
-    let errorMessage = "Failed to create product.";
-
-    try {
-      const errorBody = await response.text();
-      if (errorBody) {
-        errorMessage = errorBody;
-      }
-    } catch {
-    }
-
-    throw new Error(errorMessage);
+    throw await createApiError(response, "Failed to create product.");
   }
 
   return await response.json();

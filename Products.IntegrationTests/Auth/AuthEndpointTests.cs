@@ -18,8 +18,8 @@ public class AuthEndpointTests : IClassFixture<CustomWebApplicationFactory>
     {
         var request = new LoginRequest
         {
-            Username = "admin",
-            Password = "Password123!"
+            Username = CustomWebApplicationFactory.TestUsername,
+            Password = CustomWebApplicationFactory.TestPassword
         };
 
         var response = await _client.PostAsJsonAsync("/api/auth/login", request);
@@ -38,7 +38,7 @@ public class AuthEndpointTests : IClassFixture<CustomWebApplicationFactory>
     {
         var request = new LoginRequest
         {
-            Username = "admin",
+            Username = CustomWebApplicationFactory.TestUsername,
             Password = "wrong"
         };
 

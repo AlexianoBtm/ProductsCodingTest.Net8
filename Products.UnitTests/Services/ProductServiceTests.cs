@@ -88,6 +88,44 @@ public class ProductServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_WithMoreThanTwoPriceDecimals_ThrowsArgumentException()
+    {
+        var repository = new FakeProductRepository();
+        var service = new ProductService(repository);
+
+        var request = new CreateProductRequest
+        {
+            Name = "Gaming Mouse",
+            Description = "Wireless mouse",
+            Colour = "Black",
+            Price = 49.999m
+        };
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(request));
+
+        Assert.Contains("decimal", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithTooLongName_ThrowsArgumentException()
+    {
+        var repository = new FakeProductRepository();
+        var service = new ProductService(repository);
+
+        var request = new CreateProductRequest
+        {
+            Name = new string('A', 201),
+            Description = "Wireless mouse",
+            Colour = "Black",
+            Price = 49.99m
+        };
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(request));
+
+        Assert.Contains("200", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task GetAllAsync_ReturnsAllProducts()
     {
         var repository = new FakeProductRepository();

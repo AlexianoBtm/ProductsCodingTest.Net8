@@ -35,18 +35,8 @@ public class ProductsController : ControllerBase
         [FromBody] CreateProductRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var createdProduct = await _productService.CreateAsync(request, cancellationToken);
+        var createdProduct = await _productService.CreateAsync(request, cancellationToken);
 
-            return StatusCode(StatusCodes.Status201Created, createdProduct);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new
-            {
-                error = ex.Message
-            });
-        }
+        return StatusCode(StatusCodes.Status201Created, createdProduct);
     }
 }

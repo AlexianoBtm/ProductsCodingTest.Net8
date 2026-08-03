@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../config";
+import { createApiError } from "./apiError";
 
 export async function login(username, password) {
   const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
@@ -10,7 +11,7 @@ export async function login(username, password) {
   });
 
   if (!response.ok) {
-    throw new Error("Invalid credentials.");
+    throw await createApiError(response, "Invalid credentials.");
   }
 
   return await response.json();

@@ -2,8 +2,8 @@ import { useState } from "react";
 import { login } from "../api/authApi";
 
 function LoginForm({ onLoginSuccess }) {
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("Password123!");
+  const [username, setUsername] = useState("demo");
+  const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -18,6 +18,7 @@ function LoginForm({ onLoginSuccess }) {
       const result = await login(username, password);
       onLoginSuccess(result.token);
       setSuccessMessage("Login successful.");
+      setPassword("");
     } catch (error) {
       setErrorMessage(error.message || "Login failed.");
     } finally {
@@ -26,8 +27,11 @@ function LoginForm({ onLoginSuccess }) {
   }
 
   return (
-    <div className="card">
-      <h2>Login</h2>
+    <div className="card status-card">
+      <h2>Demo Access</h2>
+      <p className="muted">
+        Credentials are configured locally and are not stored in this repository.
+      </p>
       <form onSubmit={handleSubmit}>
         <div className="form-row">
           <label htmlFor="username">Username</label>
@@ -36,6 +40,8 @@ function LoginForm({ onLoginSuccess }) {
             value={username}
             onChange={(event) => setUsername(event.target.value)}
             placeholder="Enter username"
+            autoComplete="username"
+            required
           />
         </div>
 
@@ -47,11 +53,13 @@ function LoginForm({ onLoginSuccess }) {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="Enter password"
+            autoComplete="current-password"
+            required
           />
         </div>
 
         <div className="button-row">
-          <button type="submit" disabled={isLoading}>
+          <button className="button button-primary" type="submit" disabled={isLoading}>
             {isLoading ? "Signing in..." : "Login"}
           </button>
         </div>
