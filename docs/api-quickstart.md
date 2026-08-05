@@ -2,7 +2,18 @@
 
 > **Project classification:** public technical sample, originally built as a coding exercise. This document describes the API that exists in this repository. It is not client work, production documentation, or evidence of commercial results.
 
-This guide takes a developer from local setup to an authenticated API call, product creation, listing, filtering, and common error handling.
+This guide is written for a developer evaluating or integrating the sample API for the first time. It takes the reader from local setup to a successful authenticated request, product creation, listing, filtering, and common error handling.
+
+## Success path
+
+A first-time developer should be able to complete this path using the guide alone:
+
+1. Configure local-only credentials.
+2. Start the API and confirm database readiness.
+3. Obtain a short-lived JWT.
+4. Make an authenticated request.
+5. Create and retrieve a product.
+6. Understand the main validation and authentication failures.
 
 ## API at a glance
 
@@ -19,7 +30,7 @@ The examples below use the HTTP development profile at `http://localhost:5193`.
 ## 1. Prerequisites
 
 - .NET 8 SDK
-- `curl` or another HTTP client
+- `curl`, PowerShell, or another HTTP client
 - A local clone of this repository
 
 ## 2. Configure local-only credentials
@@ -81,7 +92,9 @@ If SQLite cannot be reached, the endpoint returns `503 Service Unavailable` with
 
 ## 4. Authenticate
 
-Send the configured local username and password to the login endpoint:
+Send the configured local username and password to the login endpoint.
+
+### Bash or compatible shell
 
 ```bash
 curl -i \
@@ -91,6 +104,23 @@ curl -i \
     "username": "demo",
     "password": "<your-local-demo-password>"
   }'
+```
+
+### PowerShell
+
+```powershell
+$loginBody = @{
+  username = "demo"
+  password = "<your-local-demo-password>"
+} | ConvertTo-Json
+
+$loginResponse = Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://localhost:5193/api/auth/login" `
+  -ContentType "application/json" `
+  -Body $loginBody
+
+$TOKEN = $loginResponse.token
 ```
 
 Successful response:
@@ -115,12 +145,6 @@ Bash:
 TOKEN="<paste-token-here>"
 ```
 
-PowerShell:
-
-```powershell
-$TOKEN = "<paste-token-here>"
-```
-
 Invalid credentials return `401 Unauthorized`:
 
 ```json
@@ -131,7 +155,7 @@ Invalid credentials return `401 Unauthorized`:
 
 ## 5. Create a product
 
-Bash:
+### Bash or compatible shell
 
 ```bash
 curl -i \
@@ -146,22 +170,22 @@ curl -i \
   }'
 ```
 
-PowerShell:
+### PowerShell
 
 ```powershell
-$body = @{
+$productBody = @{
   name = "Laptop Stand"
   description = "Adjustable aluminum stand"
   colour = "Silver"
   price = 34.99
 } | ConvertTo-Json
 
-Invoke-RestMethod \
-  -Method Post \
-  -Uri "http://localhost:5193/api/products" \
-  -Headers @{ Authorization = "Bearer $TOKEN" } \
-  -ContentType "application/json" \
-  -Body $body
+Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://localhost:5193/api/products" `
+  -Headers @{ Authorization = "Bearer $TOKEN" } `
+  -ContentType "application/json" `
+  -Body $productBody
 ```
 
 Successful creation returns `201 Created` and the saved representation:
@@ -192,13 +216,24 @@ String values are trimmed before persistence.
 
 ## 6. List products
 
+### Bash or compatible shell
+
 ```bash
 curl -i \
   http://localhost:5193/api/products \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-The response is a JSON array ordered by creation time according to the repository implementation:
+### PowerShell
+
+```powershell
+Invoke-RestMethod `
+  -Method Get `
+  -Uri "http://localhost:5193/api/products" `
+  -Headers @{ Authorization = "Bearer $TOKEN" }
+```
+
+The response is a JSON array ordered by creation time, newest first:
 
 ```json
 [
@@ -227,6 +262,15 @@ The `colour` query parameter is trimmed and matched case-insensitively.
 curl -i \
   "http://localhost:5193/api/products?colour=silver" \
   -H "Authorization: Bearer $TOKEN"
+```
+
+PowerShell:
+
+```powershell
+Invoke-RestMethod `
+  -Method Get `
+  -Uri "http://localhost:5193/api/products?colour=silver" `
+  -Headers @{ Authorization = "Bearer $TOKEN" }
 ```
 
 A missing, empty, or whitespace-only `colour` value behaves like the unfiltered list endpoint.
@@ -264,7 +308,35 @@ ASP.NET Core may add metadata such as `type` or `traceId` to a Problem Details r
 
 Unexpected exceptions return `500 Internal Server Error` with a generic detail; internal exception messages are not returned to the caller.
 
-## 10. OpenAPI and Swagger
+## 10. Troubleshooting
+
+### The API fails during startup
+
+Confirm that:
+
+- `Jwt:Key` contains at least 32 bytes;
+- `DemoAuth:Password` contains at least 12 characters;
+- at least one `Frontend:AllowedOrigins` value is configured;
+- the process can create and access the local SQLite database.
+
+### A protected request returns `401`
+
+Confirm that:
+
+- the `Authorization` header uses the `Bearer` scheme;
+- the token was copied without quotation marks;
+- the token has not expired;
+- issuer, audience, and signing-key configuration have not changed since the token was created.
+
+### Product creation returns `400`
+
+Review the response body and verify required fields, maximum lengths, price range, and decimal precision. Problem Details responses are designed to expose safe validation information without returning internal exception details.
+
+### `/health` returns `503`
+
+The API process is running, but the SQLite connectivity check failed. Verify the configured connection string, local file permissions, and migration/startup output.
+
+## 11. OpenAPI and Swagger
 
 Swagger is enabled only when `ASPNETCORE_ENVIRONMENT` is `Development`.
 
@@ -273,7 +345,7 @@ Swagger is enabled only when `ASPNETCORE_ENVIRONMENT` is `Development`.
 
 The Swagger configuration includes a Bearer security definition. Use the JWT returned by `/api/auth/login` in the Swagger UI authorization dialog.
 
-## 11. Verify the implemented behavior
+## 12. Verify the implemented behavior
 
 Run the repository checks from the root:
 
@@ -293,7 +365,30 @@ The integration tests cover:
 - case-insensitive colour filtering;
 - database-aware health behavior.
 
-## 12. Scope and security limitations
+## 13. Documentation maintenance approach
+
+This guide is stored beside the code as Markdown so documentation changes can follow the same review history as application changes.
+
+When the API changes, the documentation review should confirm:
+
+1. Endpoint paths, methods, authentication, and request models still match the implementation.
+2. Examples can be executed against the development API.
+3. Success and error responses reflect tested behavior.
+4. Swagger/OpenAPI output agrees with the written guide.
+5. New limitations, breaking changes, or migration notes are visible to integrators.
+
+For a larger public API, the same approach can expand into:
+
+- a task-oriented quickstart;
+- complete endpoint reference generated or checked against OpenAPI;
+- use-case tutorials for common integrations;
+- webhook, pagination, rate-limit, and retry guidance;
+- versioning and breaking-change notes;
+- automated example or documentation validation in CI.
+
+These are extension options, not capabilities implemented by this sample.
+
+## 14. Scope and security limitations
 
 This is a deliberately small local sample. It does not implement:
 
